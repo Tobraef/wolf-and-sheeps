@@ -1,6 +1,8 @@
-use super::{Board, Coord, board::Move};
+use super::{board::Move, Board, Coord};
 
-trait AbsDiff { fn abs_dif(self, other: u8) -> u8; }
+trait AbsDiff {
+    fn abs_dif(self, other: u8) -> u8;
+}
 
 impl AbsDiff for u8 {
     fn abs_dif(self, other: u8) -> u8 {
@@ -16,23 +18,23 @@ pub fn valid_move(board: &Board, mv: &Move) -> bool {
     let from = &mv.from;
     let to = &mv.to;
     if board.wolf == *from {
-        from.x.abs_dif(to.x) == 1 && 
-        from.y.abs_dif(to.y) == 1 && 
-        board.sheeps.iter().all(|s| s != to)
+        from.x.abs_dif(to.x) == 1
+            && from.y.abs_dif(to.y) == 1
+            && board.sheeps.iter().all(|s| s != to)
     } else {
-        from.y.saturating_sub(to.y) == 1 && 
-        to.x.abs_dif(from.x) == 1 &&
-        board.wolf != *to
+        from.y.saturating_sub(to.y) == 1 && to.x.abs_dif(from.x) == 1 && board.wolf != *to
     }
 }
 
 pub fn all_available_sheeps_moves(board: &Board) -> Vec<Move> {
-    board.sheeps
+    board
+        .sheeps
         .iter()
-        .flat_map(|s| 
+        .flat_map(|s| {
             sheep_moves(s)
-            .into_iter()
-            .map(|x| Move::new(s.clone(), Coord::new(x.0, x.1))))
+                .into_iter()
+                .map(|x| Move::new(s.clone(), Coord::new(x.0, x.1)))
+        })
         .collect()
 }
 
@@ -83,7 +85,12 @@ fn wolf_moves(coord: &Coord) -> Vec<(u8, u8)> {
         },
         1..=6 => match second {
             0 => vec![(first - 1, second + 1), (first + 1, second + 1)],
-            1..=6 => vec![(first + 1, second + 1), (first + 1, second - 1), (first - 1, second + 1), (first - 1, second - 1)],
+            1..=6 => vec![
+                (first + 1, second + 1),
+                (first + 1, second - 1),
+                (first - 1, second + 1),
+                (first - 1, second - 1),
+            ],
             7 => vec![(first - 1, second - 1), (first + 1, second - 1)],
             _ => panic!("Coord out of bounds"),
         },
@@ -108,10 +115,7 @@ pub fn wolf_cant_move(board: &Board) -> bool {
 
 pub fn move_pin(board: &mut Board, mv: &Move) -> bool {
     if valid_move(board, mv) {
-        let to_move = board
-            .iter_mut()
-            .find(|p| *p == &mv.from)
-            .unwrap();
+        let to_move = board.iter_mut().find(|p| *p == &mv.from).unwrap();
         *to_move = mv.to.clone();
         true
     } else {
@@ -123,12 +127,18 @@ pub fn move_pin(board: &mut Board, mv: &Move) -> bool {
 mod tests {
     use super::*;
     use crate::game::Board;
-    
-    fn xy(x: u8, y: u8) -> Coord { Coord::new(x, y) }
 
-    fn mv(x1: u8, y1: u8, x2: u8, y2: u8) -> Move { Move::new(xy(x1,y1), xy(x2,y2)) }
+    fn xy(x: u8, y: u8) -> Coord {
+        Coord::new(x, y)
+    }
 
-    fn mv_c(a: &Coord, b: &Coord) -> Move { Move::new(a.clone(),b.clone()) }
+    fn mv(x1: u8, y1: u8, x2: u8, y2: u8) -> Move {
+        Move::new(xy(x1, y1), xy(x2, y2))
+    }
+
+    fn mv_c(a: &Coord, b: &Coord) -> Move {
+        Move::new(a.clone(), b.clone())
+    }
 
     #[test]
     fn valid_move_sheep_should_move_only_up() {
@@ -136,7 +146,7 @@ mod tests {
         assert!(valid_move(&board, &mv(1, 7, 0, 6)));
         assert!(valid_move(&board, &mv(1, 7, 2, 6)));
 
-        board.sheeps[0] = xy(0,6);
+        board.sheeps[0] = xy(0, 6);
 
         assert!(valid_move(&board, &mv(0, 6, 1, 5)));
         assert!(!valid_move(&board, &mv(0, 6, 1, 7)));
@@ -147,21 +157,42 @@ mod tests {
     fn valid_move_wolf_should_move_anywhere() {
         let mut board = Board::default();
         board.wolf = xy(board.wolf.x, board.wolf.y + 2);
-        assert!(valid_move(&board, &mv_c(&board.wolf, &xy(board.wolf.x + 1, board.wolf.y + 1))));
-        assert!(valid_move(&board, &mv_c(&board.wolf, &xy(board.wolf.x + 1, board.wolf.y - 1))));
-        assert!(valid_move(&board, &mv_c(&board.wolf, &xy(board.wolf.x - 1, board.wolf.y + 1))));
-        assert!(valid_move(&board, &mv_c(&board.wolf, &xy(board.wolf.x - 1, board.wolf.y - 1))));
+        assert!(valid_move(
+            &board,
+            &mv_c(&board.wolf, &xy(board.wolf.x + 1, board.wolf.y + 1))
+        ));
+        assert!(valid_move(
+            &board,
+            &mv_c(&board.wolf, &xy(board.wolf.x + 1, board.wolf.y - 1))
+        ));
+        assert!(valid_move(
+            &board,
+            &mv_c(&board.wolf, &xy(board.wolf.x - 1, board.wolf.y + 1))
+        ));
+        assert!(valid_move(
+            &board,
+            &mv_c(&board.wolf, &xy(board.wolf.x - 1, board.wolf.y - 1))
+        ));
 
-        assert!(!valid_move(&board, &mv_c(&board.wolf, &xy(board.wolf.x + 3, board.wolf.y))));
-        assert!(!valid_move(&board, &mv_c(&board.wolf, &xy(board.wolf.x + 3, board.wolf.y + 3))));
+        assert!(!valid_move(
+            &board,
+            &mv_c(&board.wolf, &xy(board.wolf.x + 3, board.wolf.y))
+        ));
+        assert!(!valid_move(
+            &board,
+            &mv_c(&board.wolf, &xy(board.wolf.x + 3, board.wolf.y + 3))
+        ));
     }
 
     #[test]
     fn valid_move_should_disallow_moving_ontop_of_eachother() {
         let mut board = Board::default();
-        board.sheeps[0] = xy(2,1);
+        board.sheeps[0] = xy(2, 1);
 
-        assert!(!valid_move(&board, &mv_c(&board.sheeps[1], &board.sheeps[0])));
+        assert!(!valid_move(
+            &board,
+            &mv_c(&board.sheeps[1], &board.sheeps[0])
+        ));
 
         board.wolf = xy(3, 2);
 
@@ -174,7 +205,7 @@ mod tests {
         let board = Board::default();
 
         let all_moves = all_available_sheeps_moves(&board);
-        
+
         let all_possible = vec![
             Move::new(board.sheeps[0].clone(), xy(1, 6)),
             Move::new(board.sheeps[1].clone(), xy(1, 6)),
@@ -187,7 +218,10 @@ mod tests {
 
         assert_eq!(all_moves.len(), all_possible.len());
         for m in all_moves {
-            assert!(all_possible.contains(&m), "Move {m:?} shouldn't be possible");
+            assert!(
+                all_possible.contains(&m),
+                "Move {m:?} shouldn't be possible"
+            );
         }
     }
 }

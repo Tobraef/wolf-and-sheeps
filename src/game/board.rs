@@ -16,7 +16,11 @@ pub struct Move {
     pub to: Coord,
 }
 
-impl Move { pub fn new(from: Coord, to: Coord) -> Self { Self { from, to } } }
+impl Move {
+    pub fn new(from: Coord, to: Coord) -> Self {
+        Self { from, to }
+    }
+}
 
 #[derive(Clone)]
 pub struct Controls {
@@ -37,35 +41,34 @@ pub enum Species {
 }
 
 impl Board {
-    pub fn iter(&self) -> impl Iterator<Item=&Coord> {
-        self.sheeps
-            .iter()
-            .chain(once(&self.wolf))
+    pub fn iter(&self) -> impl Iterator<Item = &Coord> {
+        self.sheeps.iter().chain(once(&self.wolf))
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item=&mut Coord> {
-        self.sheeps
-            .iter_mut()
-            .chain(once(&mut self.wolf))
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Coord> {
+        self.sheeps.iter_mut().chain(once(&mut self.wolf))
     }
 }
 
 impl Default for Controls {
     fn default() -> Self {
-        Self { wolf_controlled_by: Control::Player, sheep_controlled_by: Control::Player }
+        Self {
+            wolf_controlled_by: Control::Player,
+            sheep_controlled_by: Control::Player,
+        }
     }
 }
 
 impl Default for Board {
     fn default() -> Self {
-        Self { 
-            wolf: Coord { x: 3, y: 0 }, 
+        Self {
+            wolf: Coord { x: 3, y: 0 },
             sheeps: [
                 Coord { x: 0, y: 7 },
                 Coord { x: 2, y: 7 },
                 Coord { x: 4, y: 7 },
                 Coord { x: 6, y: 7 },
-            ], 
+            ],
             selected: None,
             currently_moving: Species::Wolf,
         }

@@ -1,6 +1,10 @@
 use crate::ai::AI;
 
-use super::{movement::*, Board, board::{Species, Control, Controls, Move}};
+use super::{
+    board::{Control, Controls, Move, Species},
+    movement::*,
+    Board,
+};
 
 fn has_a_winner(board: &Board) -> Option<Species> {
     if board.wolf.y >= board.sheeps.iter().map(|x| x.y).max().unwrap() {
@@ -35,7 +39,11 @@ pub fn handle_move(board: &mut Board, mv: &Move) -> Option<Species> {
     }
 }
 
-fn computer_moving(current_mover: &Species, wolf_control: &Control, sheep_control: &Control) -> bool {
+fn computer_moving(
+    current_mover: &Species,
+    wolf_control: &Control,
+    sheep_control: &Control,
+) -> bool {
     if matches!(current_mover, Species::Wolf) {
         matches!(wolf_control, Control::Computer)
     } else {
@@ -44,10 +52,18 @@ fn computer_moving(current_mover: &Species, wolf_control: &Control, sheep_contro
 }
 
 #[must_use]
-pub fn handle_tick(board: &mut Board, controls: &Controls, ai: &mut Box<dyn AI>) -> Option<Species> {
-    if computer_moving(&board.currently_moving, &controls.wolf_controlled_by, &controls.sheep_controlled_by) {
-        if let Some(mv) =  ai.next_move(board) {
-            return handle_move(board, &mv)
+pub fn handle_tick(
+    board: &mut Board,
+    controls: &Controls,
+    ai: &mut Box<dyn AI>,
+) -> Option<Species> {
+    if computer_moving(
+        &board.currently_moving,
+        &controls.wolf_controlled_by,
+        &controls.sheep_controlled_by,
+    ) {
+        if let Some(mv) = ai.next_move(board) {
+            return handle_move(board, &mv);
         } else {
             change_current_mover(board);
         }
