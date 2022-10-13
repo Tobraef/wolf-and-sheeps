@@ -3,18 +3,14 @@ use crate::game::{
     movement::{all_available_sheeps_moves, all_available_wolf_moves},
     Board, Coord, Move, Species,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-#[derive(Debug)]
-pub struct GameState {
-    is_ok: bool,
-    sheeps: [Coord; 4],
-}
+type Sheeps = [Coord; 4];
 
 #[derive(Debug)]
 pub struct RemembranceAI {
-    data: HashMap<Coord, Vec<GameState>>,
-    previous_move: (Move, Coord, [Coord; 4]),
+    losing_states: HashMap<Coord, HashSet<Sheeps>>,
+    previous_move: (Coord, [Coord; 4]),
 }
 
 impl RemembranceAI {
@@ -26,28 +22,21 @@ impl RemembranceAI {
 
     #[cfg(test)]
     pub fn setup(
-        data: HashMap<Coord, Vec<GameState>>,
-        previous_move: (Move, Coord, [Coord; 4]),
+        losing_states: HashMap<Coord, HashSet<Sheeps>>,
+        previous_move: (Coord, [Coord; 4]),
     ) -> Self {
         Self {
-            data,
+            losing_states,
             previous_move,
         }
-    }
-}
-
-impl GameState {
-    pub fn new(is_ok: bool, sheeps: [Coord; 4]) -> Self {
-        Self { is_ok, sheeps }
     }
 }
 
 impl Default for RemembranceAI {
     fn default() -> Self {
         Self {
-            data: Default::default(),
+            losing_states: Default::default(),
             previous_move: (
-                Move::new(Coord::new(0, 0), Coord::new(0, 0)),
                 Coord::new(0, 0),
                 [
                     Coord::new(0, 0),
@@ -82,60 +71,41 @@ pub fn state_is_lost_for_sheep(sheeps: &[Coord], wolf: &Coord) -> bool {
 }
 
 fn move_based_on_data(ai: &mut RemembranceAI, board: &Board, available_moves: &[Move]) -> Move {
-    // list all possible states that are checked and list unchecked
-    // add all unchecked states to checked by checking, whether wolf wins after that move
-    // if so, the state is false
-    // if after adding, all checked states lead to wolf win, sheep cannot allow current state to happen, thus setting
-    let all_possible_states = available_moves
-        .iter()
-        .map(|s_move| state_after_sheep_move(s_move, &board.sheeps));
-    let checked_states = ai.data.entry(board.wolf.clone()).or_default();
-    let unchecked_possible_states: Vec<_> = all_possible_states
-        .filter(|state| checked_states.iter().any(|s| s.sheeps != *state))
-        .collect();
-    check_and_update_states(unchecked_possible_states, checked_states, &board.wolf);
-    if let Some(state) = checked_states.iter().find(|s| s.is_ok) {
-        let chosen_move = available_moves
+    // find any move that isn't marked as failed
+    // if there is none, mark previous as failed
+    println!("current states {:?}", ai.losing_states);
+    if let Some(losing_states) = ai.losing_states.get(&board.wolf) {
+        let ok_possible_state = available_moves
             .iter()
-            .find(|&s_move| state.sheeps == state_after_sheep_move(s_move, &board.sheeps))
-            .unwrap()
-            .clone();
-        ai.previous_move = (
-            chosen_move.clone(),
-            board.wolf.clone(),
-            board.sheeps.clone(),
-        );
-        chosen_move
+            .map(|s_move| (s_move, state_after_sheep_move(s_move, &board.sheeps)))
+            .find(|(_, state)| !losing_states.contains(state));
+        if let Some((mv, state)) = ok_possible_state {
+            println!("Moving to {:?} with wolf {:?}", state, board.wolf);
+            ai.previous_move = (board.wolf.clone(), state);
+            mv.clone()
+        } else {
+            println!("Nowhere to go");
+            mark_previous_move_as_fail(ai);
+            available_moves[0].clone()
+        }
     } else {
-        drop(checked_states);
-        mark_previous_move_as_fail(ai);
+        ai.previous_move = (board.wolf.clone(), state_after_sheep_move(&available_moves[0], &board.sheeps));
         available_moves[0].clone()
     }
 }
 
 pub fn mark_previous_move_as_fail(ai: &mut RemembranceAI) {
-    let previous_states = ai.data.entry(ai.previous_move.1.clone()).or_default();
-    let previous_state = previous_states
-        .iter_mut()
-        .find(|s| s.sheeps == ai.previous_move.2)
-        .unwrap();
-    previous_state.is_ok = false;
-}
-
-pub fn check_and_update_states(
-    unchecked_possible_states: Vec<[Coord; 4]>,
-    checked_states: &mut Vec<GameState>,
-    wolf: &Coord,
-) {
-    if !unchecked_possible_states.is_empty() {
-        let check_states = unchecked_possible_states
-            .into_iter()
-            .map(|state| GameState::new(!state_is_lost_for_sheep(&state, wolf), state));
-        checked_states.extend(check_states);
-    }
+    let previous_states = ai.losing_states.entry(ai.previous_move.0.clone()).or_default();
+    previous_states.insert(ai.previous_move.1.clone());
 }
 
 impl AI for RemembranceAI {
+    fn feedback(&mut self, won: bool) {
+        if !won {
+            mark_previous_move_as_fail(self);
+        }
+    }
+
     fn next_move(&mut self, board: &Board) -> Option<Move> {
         if matches!(board.currently_moving, Species::Wolf) {
             todo!("Remembrance AI not implemented for wolf");
@@ -189,21 +159,14 @@ mod tests {
             [
                 (
                     xy(3, 3),
-                    vec![
-                        GameState::new(true, sheeps(0, 0, 1, 1, 2, 2, 3, 3)),
-                        GameState::new(true, sheeps(0, 0, 1, 1, 3, 3, 2, 2)),
-                        GameState::new(false, sheeps(0, 0, 1, 1, 2, 2, 4, 4)),
-                    ],
-                ),
-                (
-                    xy(1, 2),
-                    vec![GameState::new(true, sheeps(0, 0, 1, 1, 2, 2, 3, 3))],
+                    HashSet::from_iter(
+                        std::iter::once(sheeps(0, 0, 1, 1, 2, 2, 4, 4))
+                    ),
                 ),
             ]
             .into_iter()
             .collect(),
             (
-                Move::new(xy(0, 2), xy(1, 1)),
                 Coord::new(3, 3),
                 sheeps(0, 0, 1, 1, 3, 3, 2, 2),
             ),
@@ -211,10 +174,9 @@ mod tests {
 
         mark_previous_move_as_fail(&mut ai);
 
-        let found_move_in_data = ai.data[&xy(3, 3)]
+        let found_move_in_data = ai.losing_states[&xy(3, 3)]
             .iter()
-            .find(|x| x.sheeps[2] == xy(3, 3))
-            .unwrap();
-        assert!(!found_move_in_data.is_ok);
+            .find(|x| x[2] == xy(3, 3));
+        assert!(found_move_in_data.is_some());
     }
 }

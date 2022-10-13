@@ -25,6 +25,8 @@ fn random_from_arr<T>(a: &[T]) -> Option<&T> {
 }
 
 impl AI for RandomAI {
+    fn feedback(&mut self, won: bool) {}
+
     fn next_move(&mut self, board: &Board) -> Option<Move> {
         match board.currently_moving {
             Species::Wolf => {

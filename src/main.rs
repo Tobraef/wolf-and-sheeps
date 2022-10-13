@@ -38,7 +38,7 @@ impl iced::Application for App {
             Self {
                 mode: GameMode::new(),
                 board: Default::default(),
-                ai: get_ai(AITypes::Random),
+                ai: get_ai(AITypes::Remembrance),
                 controls: Default::default(),
                 learning_progress: LearningProgress::new(),
             },
@@ -58,7 +58,10 @@ impl iced::Application for App {
             Msg::PinMoved(moved_to) => {
                 self.board.selected.clone().map(|selected| {
                     engine::handle_move(&mut self.board, &Move::new(selected, moved_to))
-                        .map(|winner| engine::handle_win(winner, &mut self.board))
+                        .map(|winner| {
+                            self.ai.feedback(false);
+                            engine::handle_win(winner, &mut self.board)
+                    })
                 });
             }
             Msg::Tick => {
@@ -77,6 +80,7 @@ impl iced::Application for App {
                 }
             },
             Msg::AILearned(mut ai) => {
+                println!("Learnt");
                 if self.learning_progress.tick() {
                     self.ai = ai;
                     self.mode = GameMode::Playing;

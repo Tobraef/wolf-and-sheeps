@@ -37,20 +37,24 @@ pub fn learning_session(ai: &mut dyn AI, species: Species) {
         Species::Wolf => loop {
             let first_move = &ai.next_move(&board).unwrap();
             if engine::handle_move(&mut board, first_move).is_some() {
+                ai.feedback(true);
                 break;
             }
             let second_move = &random_opponent.next_move(&board).unwrap();
             if engine::handle_move(&mut board, second_move).is_some() {
+                ai.feedback(false);
                 break;
             }
         },
         Species::Sheep => loop {
             let first_move = &random_opponent.next_move(&board).unwrap();
             if engine::handle_move(&mut board, first_move).is_some() {
+                ai.feedback(false);
                 break;
             }
             let second_move = &ai.next_move(&board).unwrap();
             if engine::handle_move(&mut board, second_move).is_some() {
+                ai.feedback(true);
                 break;
             }
         },

@@ -14,6 +14,7 @@ pub enum AITypes {
 
 pub trait AI: Debug {
     fn next_move(&mut self, board: &Board) -> Option<Move>;
+    fn feedback(&mut self, won: bool);
 }
 
 pub fn get_ai(ai_type: AITypes) -> Box<dyn AI + Send> {

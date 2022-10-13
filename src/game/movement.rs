@@ -35,6 +35,7 @@ pub fn all_available_sheeps_moves(board: &Board) -> Vec<Move> {
                 .into_iter()
                 .map(|x| Move::new(s.clone(), Coord::new(x.0, x.1)))
         })
+        .filter(|sheep_move| board.wolf != sheep_move.to)
         .collect()
 }
 
