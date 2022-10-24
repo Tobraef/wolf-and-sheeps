@@ -73,18 +73,15 @@ pub fn state_is_lost_for_sheep(sheeps: &[Coord], wolf: &Coord) -> bool {
 fn move_based_on_data(ai: &mut RemembranceAI, board: &Board, available_moves: &[Move]) -> Move {
     // find any move that isn't marked as failed
     // if there is none, mark previous as failed
-    println!("current states {:?}", ai.losing_states);
     if let Some(losing_states) = ai.losing_states.get(&board.wolf) {
         let ok_possible_state = available_moves
             .iter()
             .map(|s_move| (s_move, state_after_sheep_move(s_move, &board.sheeps)))
             .find(|(_, state)| !losing_states.contains(state));
         if let Some((mv, state)) = ok_possible_state {
-            println!("Moving to {:?} with wolf {:?}", state, board.wolf);
             ai.previous_move = (board.wolf.clone(), state);
             mv.clone()
         } else {
-            println!("Nowhere to go");
             mark_previous_move_as_fail(ai);
             available_moves[0].clone()
         }
@@ -111,7 +108,11 @@ impl AI for RemembranceAI {
             todo!("Remembrance AI not implemented for wolf");
         }
         let possible_moves = all_available_sheeps_moves(board);
-        Some(move_based_on_data(self, board, &possible_moves))
+        if possible_moves.is_empty() {
+            None
+        } else {
+            Some(move_based_on_data(self, board, &possible_moves))
+        }
     }
 }
 

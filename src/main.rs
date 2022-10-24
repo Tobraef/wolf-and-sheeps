@@ -38,7 +38,7 @@ impl iced::Application for App {
             Self {
                 mode: GameMode::new(),
                 board: Default::default(),
-                ai: get_ai(AITypes::Remembrance),
+                ai: get_ai(AITypes::Smart),
                 controls: Default::default(),
                 learning_progress: LearningProgress::new(),
             },
@@ -80,16 +80,11 @@ impl iced::Application for App {
                 }
             },
             Msg::AILearned(mut ai) => {
-                println!("Learnt");
-                if self.learning_progress.tick() {
-                    self.ai = ai;
-                    self.mode = GameMode::Playing;
-                } else {
-                    return Command::perform(async move {
-                        learning_session(ai.deref_mut(), Species::Sheep);
-                        ai
-                    }, Msg::AILearned)
+                while !self.learning_progress.tick() {
+                    learning_session(ai.deref_mut(), Species::Sheep);
                 }
+                self.ai = ai;
+                self.mode = GameMode::Playing;
             },
         }
         Command::none()

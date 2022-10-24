@@ -86,6 +86,5 @@ pub fn handle_control_change(controls: &mut Controls, species: Species) {
 }
 
 pub fn handle_win(winner: Species, board: &mut Board) {
-    println!("{:?} wins!", winner);
     *board = Board::default();
 }

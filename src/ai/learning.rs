@@ -2,7 +2,7 @@ use crate::game::{Board, engine, Species};
 
 use super::{AI, get_ai, AITypes};
 
-const GAMES_TO_LEARN: u32 = 100_000;
+const GAMES_TO_LEARN: u32 = 100_000_000;
 
 pub struct LearningProgress {
     pub current: u32,
@@ -31,31 +31,35 @@ impl LearningProgress {
 }
 
 pub fn learning_session(ai: &mut dyn AI, species: Species) {
-    let mut random_opponent = get_ai(AITypes::Random);
+    let mut opponent = get_ai(AITypes::Smart);
     let mut board = Board::default();
     match species {
         Species::Wolf => loop {
-            let first_move = &ai.next_move(&board).unwrap();
-            if engine::handle_move(&mut board, first_move).is_some() {
-                ai.feedback(true);
-                break;
+            if let Some(first_move) = &ai.next_move(&board) {
+                if engine::handle_move(&mut board, first_move).is_some() {
+                    ai.feedback(true);
+                    break;
+                }
             }
-            let second_move = &random_opponent.next_move(&board).unwrap();
-            if engine::handle_move(&mut board, second_move).is_some() {
-                ai.feedback(false);
-                break;
+            if let Some(second_move) = &opponent.next_move(&board) {
+                if engine::handle_move(&mut board, second_move).is_some() {
+                    ai.feedback(false);
+                    break;
+                }
             }
         },
         Species::Sheep => loop {
-            let first_move = &random_opponent.next_move(&board).unwrap();
-            if engine::handle_move(&mut board, first_move).is_some() {
-                ai.feedback(false);
-                break;
+            if let Some(first_move) = &opponent.next_move(&board) {
+                if engine::handle_move(&mut board, first_move).is_some() {
+                    ai.feedback(false);
+                    break;
+                }
             }
-            let second_move = &ai.next_move(&board).unwrap();
-            if engine::handle_move(&mut board, second_move).is_some() {
-                ai.feedback(true);
-                break;
+            if let Some(second_move) = &ai.next_move(&board) {
+                if engine::handle_move(&mut board, second_move).is_some() {
+                    ai.feedback(true);
+                    break;
+                }
             }
         },
     }

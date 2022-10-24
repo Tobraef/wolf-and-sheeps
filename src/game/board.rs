@@ -2,7 +2,7 @@ use std::iter::once;
 
 use super::coord::Coord;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Board {
     pub wolf: Coord,
     pub sheeps: [Coord; 4],
